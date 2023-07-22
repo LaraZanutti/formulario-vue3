@@ -1,14 +1,10 @@
-<script>
+<script setup>
 </script>
 
 <template>
-  <h1 class="text-3xl font-bold underline">
-    Hello world!
-
-    Vite + Vue 3 + Tailwind + DaisyUI + Firebase scaffold
-  </h1>
-
+  <div id="app">
+    <router-view />
+  </div>
 </template>
 
-<style scoped>
-</style>
+<style></style>

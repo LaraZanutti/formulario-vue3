@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, reactive } from "vue";
 import { useOpinionesStore } from '../store/opiniones'
 
 const store = useOpinionesStore()
@@ -7,13 +7,15 @@ const store = useOpinionesStore()
 const emit = defineEmits(['onSubmit'])
 
 //Variables del formulario
-const userId = ref("")
-const email = ref("")
-const password = ref("")
-const rating = ref(0)
-const opcionesSave = ref([])
+const form = reactive({
+    userId: "",
+    email: "",
+    password: "",
+    rating: 0,
+    opcionesSave: [],
+    local: ""
+})
 const loading = ref(false)
-const local = ref("")
 const opcionesBuenas = ref([
     { text: "Rapidez", value: "Rapidez" },
     { text: "Buena predisposición", value: "Buena predisposicion" },
@@ -29,16 +31,16 @@ const opcionesMalas = ref([
 ])
 
 //Validaciones
-const validation = computed(() => userId.value.length > 4 && userId.value.length < 13)
+const validation = computed(() => form.userId.length > 4 && form.userId.length < 13)
 
 const validationEmail = computed(() => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email.value);
+    return emailRegex.test(form.email);
 })
 
 const validationPassword = computed(() => {
     const numberRegex = /^(?=.*[0-9])(?=.*[a-zA-Z]).{6,}$/;
-    return numberRegex.test(password.value);
+    return numberRegex.test(form.password);
 })
 
 const hayError = computed(() => {
@@ -46,14 +48,14 @@ const hayError = computed(() => {
         !validation.value ||
         !validationEmail.value ||
         !validationPassword.value ||
-        local.value.length === 0 ||
-        rating.value === 0 ||
-        opcionesSave.value.length === 0
+        form.local.length === 0 ||
+        form.rating === 0 ||
+        form.opcionesSave.length === 0
     )
 })
 
 const opcionesByRating = computed(() => {
-    if (rating.value >= 3) {
+    if (form.rating >= 3) {
         return opcionesBuenas.value
     }
     return opcionesMalas.value
@@ -62,25 +64,29 @@ const opcionesByRating = computed(() => {
 //Métodos
 const onSubmit = async () => {
     loading.value = true
-    if (hayError.value) return
+    if (hayError.value) {
+        loading.value = false
+        alert("Hay errores en la carga de datos, por favor complete todos los campos")
+        return
+    }
     const opinion = {
-        user: userId.value,
-        email: email.value,
-        local: local.value,
-        rating: rating.value,
-        calificacion: opcionesSave.value,
+        user: form.userId,
+        email: form.email,
+        local: form.local,
+        rating: form.rating,
+        calificacion: form.opcionesSave,
     };
     await store.guardarOpinion(opinion)
     resetForm();
     loading.value = false
 }
 const resetForm = () => {
-    userId.value = ""
-    email.value = ""
-    password.value = ""
-    rating.value = 0
-    opcionesSave.value = []
-    local.value = ""
+    form.userId = ""
+    form.email = ""
+    form.password = ""
+    form.rating = 0
+    form.opcionesSave = []
+    form.local = ""
 }
 </script>
 <template>
@@ -89,19 +95,19 @@ const resetForm = () => {
 
             <label for="username">Nombre de usuario</label>
             <input type="text" :class="['input input-bordered w-full', validation ? 'input-success' : 'input-error']"
-                v-model="userId" />
-            <p class="text-error" v-if="!validation && userId.length < 2">Tu nombre de usuario debe ser de 5 a 12
+                v-model="form.userId" />
+            <p class="text-error" v-if="!validation && form.userId.length < 2">Tu nombre de usuario debe ser de 5 a 12
                 carácteres</p>
 
             <label for="email">Email</label>
             <input type="email" :class="['input input-bordered w-full', validationEmail ? 'input-success' : 'input-error']"
-                v-model="email" />
+                v-model="form.email" />
             <p class="text-error" v-if="!validationEmail"> Formato de email inválido </p>
 
             <label for="password">Password</label>
             <input type="password"
                 :class="['input input-bordered w-full', validationPassword ? 'input-success' : 'input-error']"
-                v-model="password" />
+                v-model="form.password" />
             <p class="text-error" v-if="!validationPassword">
                 Ingrese una contraseña de 6 carácteres y 1 número
             </p>
@@ -110,22 +116,22 @@ const resetForm = () => {
             <div class="radioContainer">
                 <div class="form-control">
                     <label class="label cursor-pointer flex justify-center">
-                        <input type="radio" name="radio-10" class="radio checked:bg-error mx-2" checked value="Santa Fe"
-                            v-model="local" />
+                        <input type="radio" name="radio-10" class="radio checked:bg-error mx-2" value="Santa Fe"
+                            v-model="form.local" />
                         <span class="localRadio label-text w-40">Local Santa Fe</span>
                     </label>
                 </div>
                 <div class="form-control">
                     <label class="label cursor-pointer flex justify-center">
                         <input type="radio" name="radio-10" class="radio checked:bg-error mx-2" value="Santo Tome"
-                            v-model="local" />
+                            v-model="form.local" />
                         <span class="localRadio label-text w-40">Local Santo Tomé</span>
                     </label>
                 </div>
                 <div class="form-control">
                     <label class="label cursor-pointer flex justify-center">
                         <input type="radio" name="radio-10" class="radio checked:bg-error mx-2" value="Parana"
-                            v-model="local" />
+                            v-model="form.local" />
                         <span class="localRadio label-text w-40 ">Local Paraná</span>
                     </label>
                 </div>
@@ -133,14 +139,14 @@ const resetForm = () => {
 
             <p class="tituloRating">Puntuación</p>
             <div class="rating rating-lg flex justify-center">
-                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="1" v-model="rating" />
-                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="2" v-model="rating" />
-                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="3" v-model="rating" />
-                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="4" v-model="rating" />
-                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="5" v-model="rating" />
+                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="1" v-model="form.rating" />
+                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="2" v-model="form.rating" />
+                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="3" v-model="form.rating" />
+                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="4" v-model="form.rating" />
+                <input type="radio" name="rating-2" class="mask mask-star-2 bg-error" :value="5" v-model="form.rating" />
             </div>
 
-            <template v-if="rating > 0">
+            <template v-if="form.rating > 0">
                 <p class="tituloRadio">¿Por qué tu calificación?</p>
 
                 <div class="flex flex-col items-center">
@@ -148,7 +154,7 @@ const resetForm = () => {
                         <label class="cursor-pointer label">
                             <span class="label-text text-xl">{{ opciones.text }}</span>
                             <input type="checkbox" :value="opciones.value" class="toggle toggle-error"
-                                v-model="opcionesSave" />
+                                v-model="form.opcionesSave" />
                         </label>
                     </div>
                 </div>
